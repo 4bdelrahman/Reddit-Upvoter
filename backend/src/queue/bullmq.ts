@@ -197,8 +197,9 @@ export async function scheduleUpvoteTasks(
   for (const comment of comments) {
     for (const account of activeAccounts) {
       const taskId = uuidv4();
-      // Random delay between 20 minutes (1,200,000ms) and 2 hours (7,200,000ms)
-      const delayMs = Math.floor(Math.random() * 6000000) + 1200000;
+      // TESTING: 30 second delay (change back to 20min-2hr for production)
+      // const delayMs = Math.floor(Math.random() * 6000000) + 1200000;
+      const delayMs = 30000; // 30 seconds
       const scheduledAt = new Date(Date.now() + delayMs);
 
       // Insert the upvote_task row
