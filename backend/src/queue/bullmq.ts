@@ -1,4 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
+import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { query, log } from '../db/client';
 import { QueueJobData, Account, RedditComment } from '../types';
@@ -7,13 +8,10 @@ import { upvoteComment } from '../automation/upvote';
 import { randomDelay } from '../automation/humanBehavior';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-const parsedUrl = new URL(redisUrl);
 
-const connection = {
-  host: parsedUrl.hostname,
-  port: parseInt(parsedUrl.port || '6379', 10),
-  password: parsedUrl.password || undefined,
-};
+const connection = new Redis(redisUrl, {
+  maxRetriesPerRequest: null,
+});
 
 // ─── Queue ──────────────────────────────────────────────────────────────────
 export const upvoteQueue = new Queue<QueueJobData>('upvote-queue', {
@@ -94,11 +92,14 @@ export const upvoteWorker = new Worker<QueueJobData>(
       if (browser) {
         await closeBrowser(browser);
       }
+      const errMsg = err.message || 'Unknown execution error';
+      await query(
+        `UPDATE upvote_tasks SET status = 'failed', error = $1, fired_at = NOW() WHERE id = $2 AND status = 'scheduled'`,
+        [errMsg, taskId]
+      );
+      await log(`System error processing comment ${commentId}: ${errMsg}`, 'error', jobId);
+      await checkJobCompletion(jobId);
       throw err;
-    }
-
-    if (browser) {
-      await closeBrowser(browser);
     }
   },
   {
