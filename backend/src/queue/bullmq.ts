@@ -1,5 +1,4 @@
 import { Queue, Worker, Job } from 'bullmq';
-import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { query, log } from '../db/client';
 import { QueueJobData, Account, RedditComment } from '../types';
@@ -9,9 +8,26 @@ import { randomDelay } from '../automation/humanBehavior';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-const connection = new Redis(redisUrl, {
-  maxRetriesPerRequest: null,
-});
+// Parse the Redis URL into a connection config that BullMQ accepts natively.
+// This avoids ioredis version mismatches between the standalone package and BullMQ's bundled copy.
+function parseRedisConnection(): { host: string; port: number; password?: string; username?: string; tls?: {} } {
+  try {
+    const url = new URL(redisUrl);
+    const config: any = {
+      host: url.hostname,
+      port: parseInt(url.port, 10) || 6379,
+      maxRetriesPerRequest: null,
+    };
+    if (url.password) config.password = decodeURIComponent(url.password);
+    if (url.username && url.username !== 'default') config.username = decodeURIComponent(url.username);
+    if (url.protocol === 'rediss:') config.tls = {};
+    return config;
+  } catch {
+    return { host: 'localhost', port: 6379 };
+  }
+}
+
+const connection = parseRedisConnection();
 
 // ─── Queue ──────────────────────────────────────────────────────────────────
 export const upvoteQueue = new Queue<QueueJobData>('upvote-queue', {
@@ -210,7 +226,7 @@ export async function scheduleUpvoteTasks(
   for (const task of tasks) {
     await upvoteQueue.add('upvote', task.data, {
       delay: task.delay,
-      jobId: task.taskId, // use task UUID as BullMQ job ID for easy cancellation
+      jobId: task.taskId as any, // use task UUID as BullMQ job ID for easy cancellation
     });
   }
 
