@@ -47,25 +47,22 @@ function truncateUrl(url: string, max = 55): string {
 }
 
 function getCompletedCount(job: Job): number {
-  return job.upvotes.filter((t) => t.status === 'done').length;
+  if (job.done_tasks) return parseInt(job.done_tasks, 10);
+  if (job.tasks) return job.tasks.filter((t) => t.status === 'done').length;
+  return 0;
+}
+
+function getTotalCount(job: Job): number {
+  if (job.total_tasks) return parseInt(job.total_tasks, 10);
+  if (job.tasks) return job.tasks.length;
+  return 5;
 }
 
 function getNextUpvoteIn(job: Job): string | null {
-  const now = Date.now();
-  const pending = job.upvotes
-    .filter((t) => t.status === 'pending' || t.status === 'active')
-    .map((t) => new Date(t.scheduledFor).getTime())
-    .filter((ts) => ts > now)
-    .sort((a, b) => a - b);
-
-  if (pending.length === 0) return null;
-
-  const diff = Math.max(0, pending[0] - now);
-  const mins = Math.floor(diff / 60000);
-  const secs = Math.floor((diff % 60000) / 1000);
-
-  if (mins > 0) return `${mins}m ${secs}s`;
-  return `${secs}s`;
+  if (job.scheduled_tasks && parseInt(job.scheduled_tasks, 10) > 0) {
+    return 'Pending...';
+  }
+  return null;
 }
 
 /* ── Component ────────────────────────────────────────────────────────────── */
@@ -149,7 +146,7 @@ const JobList: React.FC<JobListProps> = ({ jobs, isLoading, error, onJobDeleted 
       {jobs.map((job, index) => {
         const cfg = statusConfig[job.status] || statusConfig.pending;
         const completed = getCompletedCount(job);
-        const total = job.upvotes.length || 5;
+        const total = getTotalCount(job) || 5;
         const progress = (completed / total) * 100;
         const nextIn = getNextUpvoteIn(job);
 
@@ -175,13 +172,13 @@ const JobList: React.FC<JobListProps> = ({ jobs, isLoading, error, onJobDeleted 
 
                 {/* URL */}
                 <a
-                  href={job.postUrl}
+                  href={job.post_url || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-gray-300 hover:text-reddit-orange truncate transition-colors"
-                  title={job.postUrl}
+                  title={job.post_url}
                 >
-                  {truncateUrl(job.postUrl)}
+                  {truncateUrl(job.post_url || '')}
                 </a>
               </div>
 
@@ -206,13 +203,13 @@ const JobList: React.FC<JobListProps> = ({ jobs, isLoading, error, onJobDeleted 
             </div>
 
             {/* Target user */}
-            {job.targetUser && (
+            {job.target_user && (
               <div className="flex items-center gap-1.5 mb-3 ml-0.5">
                 <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 <span className="text-xs text-gray-500">
-                  Target: <span className="text-gray-400 font-medium">u/{job.targetUser}</span>
+                  Target: <span className="text-gray-400 font-medium">u/{job.target_user}</span>
                 </span>
               </div>
             )}

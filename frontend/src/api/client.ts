@@ -19,12 +19,17 @@ export interface UpvoteTask {
 
 export interface Job {
   id: string;
-  postUrl: string;
-  targetUser: string;
-  status: 'pending' | 'active' | 'done' | 'failed';
-  upvotes: UpvoteTask[];
-  createdAt: string;
-  updatedAt: string;
+  post_url: string;
+  target_user: string | null;
+  status: 'pending' | 'active' | 'done' | 'failed' | 'cancelled';
+  created_at: string;
+  completed_at: string | null;
+
+  total_tasks?: string;
+  done_tasks?: string;
+  failed_tasks?: string;
+  scheduled_tasks?: string;
+  tasks?: UpvoteTask[];
 }
 
 export interface LogEntry {
