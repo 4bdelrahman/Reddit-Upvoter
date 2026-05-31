@@ -38,10 +38,18 @@ router.post('/', async (req: Request, res: Response) => {
 
     const knownUsernames = accounts.map((a) => a.username);
 
+    // Build cookie string from the first active account to bypass 403 blocks
+    let cookieString = '';
+    if (accounts[0] && Array.isArray(accounts[0].cookies)) {
+      cookieString = accounts[0].cookies
+        .map((c: any) => `${c.name}=${c.value}`)
+        .join('; ');
+    }
+
     // Find target comments (comments by our accounts)
     let comments;
     try {
-      comments = await findTargetComments(postUrl, knownUsernames);
+      comments = await findTargetComments(postUrl, knownUsernames, cookieString);
     } catch (err: any) {
       await log(`Failed to fetch comments from ${postUrl}: ${err.message}`, 'error');
       res.status(502).json({ error: `Failed to fetch Reddit comments: ${err.message}` });

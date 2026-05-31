@@ -51,7 +51,8 @@ function flattenComments(listing: RedditApiListing | undefined): RedditApiCommen
  */
 export async function findTargetComments(
   postUrl: string,
-  knownUsernames: string[]
+  knownUsernames: string[],
+  cookieString?: string
 ): Promise<RedditComment[]> {
   // Normalize the URL — strip trailing slash and query params, then append .json
   let cleanUrl = postUrl.split('?')[0].replace(/\/+$/, '');
@@ -63,13 +64,17 @@ export async function findTargetComments(
 
   const apiUrl = `${cleanUrl}?limit=500&raw_json=1`;
 
-  const response = await fetch(apiUrl, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-      Accept: 'application/json',
-    },
-  });
+  const headers: Record<string, string> = {
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    Accept: 'application/json',
+  };
+
+  if (cookieString) {
+    headers['Cookie'] = cookieString;
+  }
+
+  const response = await fetch(apiUrl, { headers });
 
   if (!response.ok) {
     throw new Error(
