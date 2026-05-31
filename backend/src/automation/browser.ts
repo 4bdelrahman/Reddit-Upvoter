@@ -43,7 +43,9 @@ export async function createContextWithCookies(
     expires: cookie.expires ?? Math.floor(Date.now() / 1000) + 86400 * 365,
     httpOnly: cookie.httpOnly ?? false,
     secure: cookie.secure ?? true,
-    sameSite: (cookie.sameSite ?? 'Lax') as 'Strict' | 'Lax' | 'None',
+    sameSite: ['Strict', 'Lax', 'None'].includes(cookie.sameSite as any) 
+      ? (cookie.sameSite as 'Strict' | 'Lax' | 'None') 
+      : 'Lax',
   }));
 
   await context.addCookies(playwrightCookies);
