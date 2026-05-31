@@ -69,14 +69,19 @@ function getNextUpvoteIn(job: Job): string | null {
 
 const JobList: React.FC<JobListProps> = ({ jobs, isLoading, error, onJobDeleted }) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this job and cancel all pending upvotes?')) return;
     setDeletingId(id);
+    setDeleteError(null);
     try {
       await deleteJob(id);
       onJobDeleted(id);
-    } catch {
-      // silently fail; user can retry
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to delete job';
+      setDeleteError(msg);
+      setTimeout(() => setDeleteError(null), 5000);
     } finally {
       setDeletingId(null);
     }
@@ -143,6 +148,20 @@ const JobList: React.FC<JobListProps> = ({ jobs, isLoading, error, onJobDeleted 
   // Job cards
   return (
     <div id="job-list" className="space-y-3 animate-fade-in">
+      {/* Delete error banner */}
+      {deleteError && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-fade-in">
+          <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <span className="text-red-400 text-sm">{deleteError}</span>
+          <button onClick={() => setDeleteError(null)} className="ml-auto text-red-400 hover:text-red-300">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
       {jobs.map((job, index) => {
         const cfg = statusConfig[job.status] || statusConfig.pending;
         const completed = getCompletedCount(job);
@@ -187,8 +206,8 @@ const JobList: React.FC<JobListProps> = ({ jobs, isLoading, error, onJobDeleted 
                 id={`job-delete-${job.id}`}
                 onClick={() => handleDelete(job.id)}
                 disabled={deletingId === job.id}
-                className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10
-                           opacity-0 group-hover:opacity-100 transition-all duration-200
+                className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10
+                           transition-all duration-200
                            disabled:opacity-50 flex-shrink-0"
                 title="Delete job"
               >

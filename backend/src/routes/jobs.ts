@@ -185,19 +185,25 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    // Cancel pending BullMQ jobs
-    const removed = await cancelJobTasks(id);
+    // Try to cancel pending BullMQ jobs (non-fatal if Redis is down)
+    let removed = 0;
+    try {
+      removed = await cancelJobTasks(id);
+    } catch (queueErr: any) {
+      console.warn('Could not cancel BullMQ tasks (Redis may be down):', queueErr.message);
+      // Still proceed — we'll clean up the DB rows regardless
+    }
 
-    // Update job status
-    await query(
-      `UPDATE jobs SET status = 'cancelled', completed_at = NOW() WHERE id = $1`,
-      [id]
-    );
+    // Delete associated upvote_tasks first (cascade should handle this, but be explicit)
+    await query(`DELETE FROM upvote_tasks WHERE job_id = $1`, [id]);
 
-    await log(`Job cancelled — removed ${removed} pending tasks from queue`, 'info', id);
+    // Delete the job row entirely
+    await query(`DELETE FROM jobs WHERE id = $1`, [id]);
+
+    await log(`Job deleted — removed ${removed} pending tasks from queue`, 'info');
 
     res.json({
-      message: 'Job cancelled',
+      message: 'Job deleted',
       removed_tasks: removed,
     });
   } catch (err: any) {
