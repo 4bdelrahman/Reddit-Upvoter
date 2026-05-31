@@ -26,7 +26,7 @@ const JobSubmit: React.FC<JobSubmitProps> = ({ onJobCreated }) => {
       const job = await createJob(trimmed);
       setFeedback({
         type: 'success',
-        message: `Job created! Tracking ${job.upvotes?.length ?? 0} upvote tasks for "${job.targetUser || 'detected user'}".`,
+        message: `Job created! Target user: "${job.target_user || 'detected user'}".`,
       });
       setUrl('');
       onJobCreated(job);
