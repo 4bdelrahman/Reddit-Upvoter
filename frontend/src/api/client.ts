@@ -126,9 +126,16 @@ export async function saveAccount(
   username: string,
   cookies: string
 ): Promise<Account> {
+  let parsedCookies;
+  try {
+    parsedCookies = JSON.parse(cookies);
+  } catch (err) {
+    throw new Error("Invalid cookie JSON. Please make sure you copied the entire array from EditThisCookie.");
+  }
+
   return apiFetch<Account>(`/accounts/${slot}`, {
     method: 'POST',
-    body: JSON.stringify({ username, cookies }),
+    body: JSON.stringify({ username, cookies: parsedCookies }),
   });
 }
 
