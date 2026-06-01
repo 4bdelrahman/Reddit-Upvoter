@@ -223,7 +223,7 @@ export async function scheduleUpvoteTasks(
         data: {
           taskId,
           jobId,
-          postUrl,
+          postUrl: comment.permalink ? `https://www.reddit.com${comment.permalink}` : postUrl,
           commentId: comment.id,
           accountSlot: account.slot,
         },
