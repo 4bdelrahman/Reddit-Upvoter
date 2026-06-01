@@ -26,7 +26,7 @@ const JobSubmit: React.FC<JobSubmitProps> = ({ onJobCreated }) => {
       const job = await createJob(trimmed);
       setFeedback({
         type: 'success',
-        message: `Job created! Target user: "${job.target_user || 'detected user'}".`,
+        message: 'Job created for the specified comment!',
       });
       setUrl('');
       onJobCreated(job);
@@ -56,7 +56,7 @@ const JobSubmit: React.FC<JobSubmitProps> = ({ onJobCreated }) => {
             New Upvote Job
           </h2>
           <p className="text-sm text-gray-400 mt-1.5 ml-10">
-            Paste a Reddit post URL to auto-detect the target comment and schedule upvotes.
+            Paste a direct Reddit comment URL to schedule upvotes.
           </p>
         </div>
 
@@ -68,7 +68,7 @@ const JobSubmit: React.FC<JobSubmitProps> = ({ onJobCreated }) => {
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.reddit.com/r/subreddit/comments/..."
+              placeholder="https://www.reddit.com/r/subreddit/comments/.../comment/..."
               disabled={isLoading}
               className="w-full bg-dark-900/80 border border-dark-500 rounded-lg px-4 py-3 pr-12
                          text-sm text-gray-200 placeholder-gray-600
@@ -114,7 +114,7 @@ const JobSubmit: React.FC<JobSubmitProps> = ({ onJobCreated }) => {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                Detect &amp; Queue
+                Queue Upvotes
               </>
             )}
           </button>

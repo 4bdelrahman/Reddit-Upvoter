@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { query, queryOne, log } from '../db/client';
 import { Job, Account } from '../types';
-import { findTargetComments } from '../workers/commentFinder';
 import { scheduleUpvoteTasks, cancelJobTasks } from '../queue/bullmq';
 
 const router = Router();
@@ -38,34 +37,33 @@ router.post('/', async (req: Request, res: Response) => {
 
     const knownUsernames = accounts.map((a) => a.username);
 
-    // Build cookie string from the first active account to bypass 403 blocks
-    let cookieString = '';
-    if (accounts[0] && Array.isArray(accounts[0].cookies)) {
-      cookieString = accounts[0].cookies
-        .map((c: any) => `${c.name}=${c.value}`)
-        .join('; ');
-    }
-
-    // Find target comments (comments by our accounts)
-    let comments;
-    try {
-      comments = await findTargetComments(postUrl, knownUsernames, cookieString);
-    } catch (err: any) {
-      await log(`Failed to fetch comments from ${postUrl}: ${err.message}`, 'error');
-      res.status(502).json({ error: `Failed to fetch Reddit comments: ${err.message}` });
+    // Extract comment ID from URL
+    // Supports formats like /r/SaaS/comments/post_id/comment/comment_id or /r/sub/comments/id/title/comment_id
+    const match = postUrl.match(/\/comments\/[a-z0-9]+\/[^/]+\/([a-z0-9]+)/i);
+    if (!match || !match[1]) {
+      res.status(400).json({ error: 'Invalid URL. Please provide a direct link to a specific Reddit comment.' });
       return;
     }
-
-    // Detect target user (the post author) from the URL or first non-account comment
-    let targetUser: string | null = null;
+    
+    const commentId = match[1];
+    
+    // Parse permalink
+    let permalink = '';
     try {
-      const urlMatch = postUrl.match(/\/user\/([^/]+)/);
-      if (urlMatch) {
-        targetUser = urlMatch[1];
-      }
+      permalink = new URL(postUrl).pathname;
     } catch {
-      // Not critical
+      permalink = postUrl.split('?')[0]; // fallback
     }
+
+    const comments = [{
+      id: commentId,
+      author: 'unknown', // Not needed anymore
+      body: 'Direct link submission',
+      permalink: permalink
+    }];
+
+    // Target user extraction (optional, can just be null)
+    let targetUser: string | null = null;
 
     // Create the job row
     const jobRows = await query<Job>(
