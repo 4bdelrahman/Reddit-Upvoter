@@ -194,12 +194,20 @@ export async function scheduleUpvoteTasks(
 
   const tasks: { taskId: string; delay: number; data: QueueJobData }[] = [];
 
+  // Start with a small initial delay, then stagger subsequent upvotes
+  let currentDelayMs = 30000; // initial 30 seconds
+
   for (const comment of comments) {
     for (const account of activeAccounts) {
       const taskId = uuidv4();
-      // TESTING: 30 second delay (change back to 20min-2hr for production)
-      // const delayMs = Math.floor(Math.random() * 6000000) + 1200000;
-      const delayMs = 30000; // 30 seconds
+      
+      // Delay for this specific task
+      const delayMs = currentDelayMs;
+      
+      // Add a random delay for the next task (e.g., 5 to 15 minutes)
+      // This mimics human spacing between different accounts upvoting
+      currentDelayMs += Math.floor(Math.random() * 600000) + 300000; 
+      
       const scheduledAt = new Date(Date.now() + delayMs);
 
       // Insert the upvote_task row
