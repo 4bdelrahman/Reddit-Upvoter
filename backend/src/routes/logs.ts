@@ -15,7 +15,16 @@ router.get('/', async (req: Request, res: Response) => {
     const limit = isNaN(limitParam) ? 100 : Math.min(Math.max(limitParam, 1), 500);
 
     const logs = await query<LogEntry>(
-      `SELECT * FROM logs ORDER BY created_at DESC LIMIT $1`,
+      `SELECT 
+         id, 
+         message, 
+         type, 
+         created_at AS timestamp, 
+         account AS "accountName", 
+         job_id AS "jobId" 
+       FROM logs 
+       ORDER BY created_at DESC 
+       LIMIT $1`,
       [limit]
     );
 
